@@ -5,12 +5,9 @@ import seaborn as sns
 from visualize import *
 
 # load data
-df = sns.load_dataset('iris')
+df = sns.load_dataset('interaction signals.csv')
 # get column and species names
-attributes = df.columns[:-1].tolist()
-species = df['species'].unique().tolist()
 
-# streamlit page config
 st.set_page_config(
     page_title="Iris Dashboard",  # the page title shown in the browser tab
     page_icon=":bar_chart:",  # the page favicon shown in the browser tab
