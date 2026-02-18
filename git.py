@@ -1,136 +1,67 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-
-# Page configuration
-st.set_page_config(
-    page_title="Drug–Drug Interaction Dashboard",
-    layout="wide"
-)
-
-
 # Load data
 @st.cache_data
 def load_data():
-    return pd.read_csv("interaction_signals.csv")
+    return pd.read_csv("final_rules.csv")
 
 df = load_data()
 
 
-# Title
-st.title("Drug–Drug Interaction Signal Dashboard")
-st.markdown(
-    "Analysis of adverse drug reactions using association rule metrics "
-    "(Lift and Support)."
-)
 
+# Load your final_rules DataFrame (must include columns: antecedents, consequents, case_count, support, confidence, lift)
+# Example if saved earlier:
+# final_rules = pd.read_csv("final_rules.csv")
 
-# Sidebar filters
-st.sidebar.header("Filters")
+# Convert frozensets to strings for display
+final_rules["antecedents_str"] = final_rules["antecedents"].apply(lambda x: ", ".join(list(x)))
+final_rules["consequents_str"] = final_rules["consequents"].apply(lambda x: ", ".join(list(x)))
 
-drug_a = st.sidebar.multiselect(
-    "Select Drug A",
-    options=sorted(df["DrugA"].unique())
-)
+st.title("Drug–Event Association Dashboard")
 
-drug_b = st.sidebar.multiselect(
-    "Select Drug B",
-    options=sorted(df["DrugB"].unique())
-)
+# Search box for antecedents
+search_term = st.text_input("Search antecedents (type part of a drug name):")
 
-severity = st.sidebar.multiselect(
-    "Select Severity",
-    options=sorted(df["Severity"].unique())
-)
-
-min_lift = st.sidebar.slider(
-    "Minimum Lift (2 Drugs)",
-    float(df["Lift_2Drugs"].min()),
-    float(df["Lift_2Drugs"].max()),
-    float(df["Lift_2Drugs"].min())
-)
-
-
-# Apply filters
-filtered_df = df.copy()
-
-if drug_a:
-    filtered_df = filtered_df[filtered_df["DrugA"].isin(drug_a)]
-
-if drug_b:
-    filtered_df = filtered_df[filtered_df["DrugB"].isin(drug_b)]
-
-if severity:
-    filtered_df = filtered_df[filtered_df["Severity"].isin(severity)]
-
-filtered_df = filtered_df[
-    filtered_df["Lift_2Drugs"] >= min_lift
-]
-
-
-# Key metrics
-col1, col2, col3, col4 = st.columns(4)
-
-col1.metric("Total Interactions", len(filtered_df))
-col2.metric("Unique Drug A", filtered_df["DrugA"].nunique())
-col3.metric("Unique Drug B", filtered_df["DrugB"].nunique())
-col4.metric("Unique ADRs", filtered_df["ADR"].nunique())
-
-
-# Tabs
-tab1, tab2, tab3 = st.tabs(
-    ["Interaction Table", "Lift Analysis", "Severity Overview"]
-)
-
-
-# Tab 1: Data Table
-with tab1:
-    st.subheader("Filtered Drug–ADR Interactions")
-    st.dataframe(
-        filtered_df.sort_values("Lift_2Drugs", ascending=False),
-        use_container_width=True
+if search_term:
+    # Filter antecedents by search term
+    filtered_options = sorted(
+        [a for a in final_rules["antecedents_str"].unique() if search_term.lower() in a.lower()]
     )
+else:
+    filtered_options = sorted(final_rules["antecedents_str"].unique())
 
+# Multi-select for antecedents
+selected_antecedents = st.multiselect("Select antecedents (drug pairs):", filtered_options)
 
-# Tab 2: Lift analysis
-with tab2:
-    st.subheader("Lift vs Support")
+if selected_antecedents:
+    # Filter rules by selected antecedents
+    filtered = final_rules[final_rules["antecedents_str"].isin(selected_antecedents)]
 
-    fig = px.scatter(
-        filtered_df,
-        x="Support_3Itemset",
-        y="Lift_2Drugs",
-        color="Severity",
-        hover_data=["DrugA", "DrugB", "ADR"],
-        title="Lift vs Support for Drug Pairs"
-    )
+    st.subheader("Relevant PTs")
+    for _, row in filtered.iterrows():
+        pt = row["consequents_str"]
+        case_count = row["case_count"]
 
-    st.plotly_chart(fig, use_container_width=True)
+        # Choose background color based on case_count
+        if case_count > 30:
+            color = "red"
+        elif 20 <= case_count <= 30:
+            color = "green"
+        else:
+            color = "yellow"
 
+        st.markdown(
+            f"<div style='background-color:{color};padding:10px;margin:5px;border-radius:5px;'>"
+            f"<b>PT:</b> {pt} | <b>Case Count:</b> {case_count} | "
+            f"<b>Support:</b> {row['support']:.4f} | "
+            f"<b>Confidence:</b> {row['confidence']:.2f} | "
+            f"<b>Lift:</b> {row['lift']:.2f}"
+            "</div>",
+            unsafe_allow_html=True
+        )
+else:
+    st.info("Search and select antecedents to see associated PTs.")
 
-# Tab 3: Severity distribution
-with tab3:
-    st.subheader("Severity Distribution")
-
-    severity_counts = (
-        filtered_df["Severity"]
-        .value_counts()
-        .reset_index()
-    )
-
-    severity_counts.columns = ["Severity", "Count"]
-
-    fig = px.bar(
-        severity_counts,
-        x="Severity",
-        y="Count",
-        title="ADR Severity Levels"
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-
-# Footer
-st.markdown("---")
-st.caption("Data source: FAERS | Association Rule Mining Results")
