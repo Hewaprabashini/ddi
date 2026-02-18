@@ -2,23 +2,24 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import ast  # For converting string frozenset from CSV
 
 # Load data
 @st.cache_data
 def load_data():
-    return pd.read_csv("all_rules.csv")
+    df = pd.read_csv("all_rules.csv")
+    
+    # Convert string frozensets back to actual frozensets
+    df["antecedents"] = df["antecedents"].apply(lambda x: frozenset(ast.literal_eval(x)))
+    df["consequents"] = df["consequents"].apply(lambda x: frozenset(ast.literal_eval(x)))
+    
+    # Create string versions for display in Streamlit widgets
+    df["antecedents_str"] = df["antecedents"].apply(lambda x: ", ".join(sorted(list(x))))
+    df["consequents_str"] = df["consequents"].apply(lambda x: ", ".join(sorted(list(x))))
+    
+    return df
 
-df = load_data()
-
-
-
-# Load your final_rules DataFrame (must include columns: antecedents, consequents, case_count, support, confidence, lift)
-# Example if saved earlier:
-# final_rules = pd.read_csv("final_rules.csv")
-
-# Convert frozensets to strings for display
-alll_rules["antecedents_str"] = alll_rules["antecedents"].apply(lambda x: ", ".join(list(x)))
-alll_rules["consequents_str"] = alll_rules["consequents"].apply(lambda x: ", ".join(list(x)))
+alll_rules = load_data()
 
 st.title("Drug–Event Association Dashboard")
 
@@ -28,7 +29,7 @@ search_term = st.text_input("Search antecedents (type part of a drug name):")
 if search_term:
     # Filter antecedents by search term
     filtered_options = sorted(
-        [a for a in all_rules["antecedents_str"].unique() if search_term.lower() in a.lower()]
+        [a for a in alll_rules["antecedents_str"].unique() if search_term.lower() in a.lower()]
     )
 else:
     filtered_options = sorted(alll_rules["antecedents_str"].unique())
@@ -38,7 +39,7 @@ selected_antecedents = st.multiselect("Select antecedents (drug pairs):", filter
 
 if selected_antecedents:
     # Filter rules by selected antecedents
-    filtered = alll_rules[final_rules["antecedents_str"].isin(selected_antecedents)]
+    filtered = alll_rules[alll_rules["antecedents_str"].isin(selected_antecedents)]
 
     st.subheader("Relevant PTs")
     for _, row in filtered.iterrows():
@@ -64,4 +65,3 @@ if selected_antecedents:
         )
 else:
     st.info("Search and select antecedents to see associated PTs.")
-
