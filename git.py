@@ -4,17 +4,16 @@ import pandas as pd
 import plotly.express as px
 import ast  # For converting string frozenset from CSV
 
-# Load data
 @st.cache_data
 def load_data():
     df = pd.read_csv("all_rules.csv")
     
-   # Simply clean the strings for display; no frozenset conversion needed
-df["antecedents_str"] = df["antecedents"].str.replace("frozenset", "").str.strip("()")
-df["consequents_str"] = df["consequents"].str.replace("frozenset", "").str.strip("()")
-
+    # Clean the antecedents and consequents strings for display
+    df["antecedents_str"] = df["antecedents"].str.replace("frozenset", "").str.strip("()")
+    df["consequents_str"] = df["consequents"].str.replace("frozenset", "").str.strip("()")
     
-return df
+    return df
+
 
 alll_rules = load_data()
 
