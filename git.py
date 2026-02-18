@@ -9,13 +9,10 @@ import ast  # For converting string frozenset from CSV
 def load_data():
     df = pd.read_csv("all_rules.csv")
     
-    # Convert string frozensets back to actual frozensets
-    df["antecedents"] = df["antecedents"].apply(lambda x: frozenset(ast.literal_eval(x)))
-    df["consequents"] = df["consequents"].apply(lambda x: frozenset(ast.literal_eval(x)))
-    
-    # Create string versions for display in Streamlit widgets
-    df["antecedents_str"] = df["antecedents"].apply(lambda x: ", ".join(sorted(list(x))))
-    df["consequents_str"] = df["consequents"].apply(lambda x: ", ".join(sorted(list(x))))
+   # Simply clean the strings for display; no frozenset conversion needed
+df["antecedents_str"] = df["antecedents"].str.replace("frozenset", "").str.strip("()")
+df["consequents_str"] = df["consequents"].str.replace("frozenset", "").str.strip("()")
+
     
     return df
 
