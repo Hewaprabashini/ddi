@@ -14,7 +14,7 @@ df["antecedents_str"] = df["antecedents"].str.replace("frozenset", "").str.strip
 df["consequents_str"] = df["consequents"].str.replace("frozenset", "").str.strip("()")
 
     
-    return df
+return df
 
 alll_rules = load_data()
 
