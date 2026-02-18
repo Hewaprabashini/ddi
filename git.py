@@ -1,63 +1,68 @@
-
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import ast  # For converting string frozenset from CSV
 
+# -----------------------------
+# Load data
+# -----------------------------
 @st.cache_data
 def load_data():
-    df = pd.read_csv("all_rules.csv")
-    
-    # Clean the antecedents and consequents strings for display
-    df["antecedents_str"] = df["antecedents"].str.replace("frozenset", "").str.strip("()")
-    df["consequents_str"] = df["consequents"].str.replace("frozenset", "").str.strip("()")
-    
+    df = pd.read_csv("drug_pairs_rules.csv")
     return df
 
-
-alll_rules = load_data()
+df_rules = load_data()
 
 st.title("Drug–Event Association Dashboard")
 
-# Search box for antecedents
-search_term = st.text_input("Search antecedents (type part of a drug name):")
+# -----------------------------
+# Multi-select for Drug1 and Drug2
+# -----------------------------
+# Get unique drug names
+all_drugs = sorted(set(df_rules["Drug1"]).union(set(df_rules["Drug2"])))
 
-if search_term:
-    # Filter antecedents by search term
-    filtered_options = sorted(
-        [a for a in alll_rules["antecedents_str"].unique() if search_term.lower() in a.lower()]
-    )
+st.subheader("Select exactly 2 drugs as antecedents")
+selected_drugs = st.multiselect(
+    "Pick 2 drugs:",
+    options=all_drugs,
+    default=None
+)
+
+# Enforce exactly 2 drugs
+if len(selected_drugs) != 2 and selected_drugs:
+    st.warning("Please select exactly 2 drugs to see associated PTs.")
+elif len(selected_drugs) == 2:
+    drug_a, drug_b = selected_drugs
+    
+    # Filter rules where the two drugs appear (any order)
+    filtered = df_rules[
+        ((df_rules["Drug1"] == drug_a) & (df_rules["Drug2"] == drug_b)) |
+        ((df_rules["Drug1"] == drug_b) & (df_rules["Drug2"] == drug_a))
+    ]
+    
+    if filtered.empty:
+        st.info("No PTs found for this drug combination.")
+    else:
+        st.subheader("Relevant PTs")
+        for _, row in filtered.iterrows():
+            pt = row["PT"]
+            case_count = row["case_count"]
+
+            # Choose background color based on case_count
+            if case_count > 30:
+                color = "red"
+            elif 20 <= case_count <= 30:
+                color = "green"
+            else:
+                color = "yellow"
+
+            st.markdown(
+                f"<div style='background-color:{color};padding:10px;margin:5px;border-radius:5px;'>"
+                f"<b>PT:</b> {pt} | <b>Case Count:</b> {case_count} | "
+                f"<b>Support:</b> {row['support']:.4f} | "
+                f"<b>Confidence:</b> {row['confidence']:.2f} | "
+                f"<b>Lift:</b> {row['lift']:.2f}"
+                "</div>",
+                unsafe_allow_html=True
+            )
 else:
-    filtered_options = sorted(alll_rules["antecedents_str"].unique())
+    st.info("Select 2 drugs to see associated PTs.")
 
-# Multi-select for antecedents
-selected_antecedents = st.multiselect("Select antecedents (drug pairs):", filtered_options)
-
-if selected_antecedents:
-    # Filter rules by selected antecedents
-    filtered = alll_rules[alll_rules["antecedents_str"].isin(selected_antecedents)]
-
-    st.subheader("Relevant PTs")
-    for _, row in filtered.iterrows():
-        pt = row["consequents_str"]
-        case_count = row["case_count"]
-
-        # Choose background color based on case_count
-        if case_count > 30:
-            color = "red"
-        elif 20 <= case_count <= 30:
-            color = "green"
-        else:
-            color = "yellow"
-
-        st.markdown(
-            f"<div style='background-color:{color};padding:10px;margin:5px;border-radius:5px;'>"
-            f"<b>PT:</b> {pt} | <b>Case Count:</b> {case_count} | "
-            f"<b>Support:</b> {row['support']:.4f} | "
-            f"<b>Confidence:</b> {row['confidence']:.2f} | "
-            f"<b>Lift:</b> {row['lift']:.2f}"
-            "</div>",
-            unsafe_allow_html=True
-        )
-else:
-    st.info("Search and select antecedents to see associated PTs.")
