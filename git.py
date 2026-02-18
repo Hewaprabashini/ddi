@@ -59,7 +59,7 @@ if len(selected_drugs) == 2:
             # 🎨 Color logic (20–30 must be GREEN)
             if case_count > 30:
                 color = "#ff4d4d"   # red
-            if 20 <= case_count <= 30:
+            elif 20 <= case_count <= 30:
                 color = "#4CAF50"   # green
             else:
                 color = "#FFD966"   # yellow
