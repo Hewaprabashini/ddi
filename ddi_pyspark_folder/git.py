@@ -1,22 +1,16 @@
-import streamlit as st
-import pandas as pd
 import os
+import pandas as pd
+import streamlit as st
 
-# -----------------------------
-# Load data (FIXED)
-# -----------------------------
 @st.cache_data
 def load_data():
-    base_path = os.path.dirname(__file__)  # folder where git.py is
+    base_path = os.path.dirname(__file__)
     file_path = os.path.join(base_path, "ddi_pyspark_folder", "drug_pairs_rules.csv")
     
-    # Debug (optional)
-    # st.write("Looking for file at:", file_path)
+    st.write("Reading from:", file_path)  # debug line
 
     df = pd.read_csv(file_path)
     return df
-
-df_rules = load_data()
 
 st.title("Drug–Event Association Dashboard")
 
