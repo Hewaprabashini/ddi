@@ -7,7 +7,7 @@ import streamlit as st
 # -----------------------------
 @st.cache_data
 def load_data():
-    file_path = os.path.join(os.path.dirname(__file__),result.csv")
+    file_path = os.path.join(os.path.dirname(__file__),"result.csv")
     df = pd.read_csv(file_path)
     return df
 
