@@ -1,12 +1,19 @@
 import streamlit as st
 import pandas as pd
+import os
 
 # -----------------------------
-# Load data
+# Load data (FIXED)
 # -----------------------------
 @st.cache_data
 def load_data():
-   df = pd.read_csv("ddi_pyspark_folder/drug_pairs_rules.csv")
+    base_path = os.path.dirname(__file__)  # folder where git.py is
+    file_path = os.path.join(base_path, "ddi_pyspark_folder", "drug_pairs_rules.csv")
+    
+    # Debug (optional)
+    # st.write("Looking for file at:", file_path)
+
+    df = pd.read_csv(file_path)
     return df
 
 df_rules = load_data()
@@ -41,7 +48,6 @@ selected_drugs = st.multiselect(
 if len(selected_drugs) == 2:
     drug_a, drug_b = selected_drugs
 
-    # Filter rules (order insensitive)
     filtered = df_rules[
         ((df_rules["Drug1"] == drug_a) & (df_rules["Drug2"] == drug_b)) |
         ((df_rules["Drug1"] == drug_b) & (df_rules["Drug2"] == drug_a))
@@ -56,13 +62,13 @@ if len(selected_drugs) == 2:
             pt = row["PT"]
             case_count = row["case_count"]
 
-            # 🎨 Color logic (20–30 must be GREEN)
+            # 🎨 Color logic
             if case_count > 30:
-                color = "#ff4d4d"   # red
+                color = "#ff4d4d"
             elif 20 <= case_count <= 30:
-                color = "#4CAF50"   # green
+                color = "#4CAF50"
             else:
-                color = "#FFD966"   # yellow
+                color = "#FFD966"
 
             st.markdown(
                 f"<div style='background-color:{color};padding:10px;"
@@ -80,5 +86,5 @@ elif len(selected_drugs) == 1:
     st.warning("Please select one more drug to complete the pair.")
 
 else:
-    st.info("Select 2 drugs to see associated PTs.")
+    st.info("Select 2 drugs to see associated PTs.")sociated PTs.")
 
