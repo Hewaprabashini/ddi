@@ -7,7 +7,7 @@ import streamlit as st
 # -----------------------------
 @st.cache_data
 def load_data():
-    file_path = os.path.join(os.path.dirname(__file__),"result.csv")
+    file_path = os.path.join(os.path.dirname(__file__), "result.csv")
     df = pd.read_csv(file_path)
     return df
 
@@ -18,36 +18,37 @@ st.title("Drug–Event Association Dashboard")
 # -----------------------------
 # Build Drug List
 # -----------------------------
-all_drugs = sorted(set(df_rules["Drug1"]).union(set(df_rules["Drug2"])))
+all_drugs = sorted(set(df_rules["drug_1"]).union(set(df_rules["drug_2"])))
 
 st.subheader("Select antecedent drugs")
 
-# 🔎 First drug selection
+# First drug
 first_drug = st.selectbox("Pick the first drug:", all_drugs)
 
-# 🔎 Suggest second drug based on first drug
+# Suggest second drug
 possible_seconds = sorted(
-    set(df_rules[df_rules["Drug1"] == first_drug]["Drug2"]).union(
-        set(df_rules[df_rules["Drug2"] == first_drug]["Drug1"])
+    set(df_rules[df_rules["drug_1"] == first_drug]["drug_2"]).union(
+        set(df_rules[df_rules["drug_2"] == first_drug]["drug_1"])
     )
 )
 
 second_drug = st.selectbox("Pick the second drug:", possible_seconds)
 
 # -----------------------------
-# Filters for metrics
+# Filters
 # -----------------------------
 st.subheader("Filter rules by metrics")
-min_case = st.slider("Minimum Case Count:", min_value=1, max_value=50, value=1)
+
+min_case = st.slider("Minimum Case Count:", 1, 50, 1)
 min_conf = st.slider("Minimum Confidence:", 0.0, 1.0, 0.0, 0.05)
 min_lift = st.slider("Minimum Lift:", 0.0, 5000.0, 0.0, 50.0)
 
 # -----------------------------
-# Filter rules for selected pair
+# Filter selected pair
 # -----------------------------
 filtered = df_rules[
-    (((df_rules["Drug1"] == first_drug) & (df_rules["Drug2"] == second_drug)) |
-     ((df_rules["Drug1"] == second_drug) & (df_rules["Drug2"] == first_drug)))
+    (((df_rules["drug_1"] == first_drug) & (df_rules["drug_2"] == second_drug)) |
+     ((df_rules["drug_1"] == second_drug) & (df_rules["drug_2"] == first_drug)))
 ]
 
 # Apply filters
@@ -57,32 +58,37 @@ filtered = filtered[
     (filtered["lift"] >= min_lift)
 ]
 
+# -----------------------------
+# Display results
+# -----------------------------
 if filtered.empty:
     st.info("No PTs found for this drug combination with the selected filters.")
 else:
     st.subheader("Relevant PTs (sorted by Lift)")
-
-    # Sort by Lift descending
     filtered = filtered.sort_values(by="lift", ascending=False)
 
     for _, row in filtered.iterrows():
-        pt = row["PT"]
+        pt = row["pt"]
         case_count = row["case_count"]
         support = row["support"]
         confidence = row["confidence"]
         lift = row["lift"]
+        outcome = row["final_outcome"]
 
-        # 🎨 Color logic based on your description
-        if case_count < 5 and lift > 1000:
-            color = "#ff6666"  # very high risk
-        elif lift >= 50 and case_count > 5:
-            color = "#ffcc66"  # moderate
+        # 🎨 Color based on OUTCOME (better clinical logic)
+        if outcome == "Critical":
+            color = "#ff4d4d"  # red
+        elif outcome == "Serious":
+            color = "#ff944d"  # orange
+        elif outcome == "Moderate":
+            color = "#ffd966"  # yellow
         else:
-            color = "#cce5ff"  # mild / low
+            color = "#cce5ff"  # blue
 
         st.markdown(
             f"<div style='background-color:{color};padding:10px;margin:6px;border-radius:8px;'>"
             f"<b>PT:</b> {pt} | "
+            f"<b>Outcome:</b> {outcome} | "
             f"<b>Case Count:</b> {case_count} | "
             f"<b>Support:</b> {support:.4f} | "
             f"<b>Confidence:</b> {confidence:.2f} | "
@@ -92,13 +98,14 @@ else:
         )
 
 # -----------------------------
-# Info / Tips
+# Info
 # -----------------------------
 st.markdown("""
 **Tips:**  
-- Case Count: Number of cases where this PT occurred with the drug pair.  
-- Support: Proportion of all cases where this PT occurred.  
-- Confidence: Probability that PT occurs given this drug pair.  
-- Lift: How much more likely the PT occurs than by chance.  
-- Color codes indicate severity: red = high risk, yellow = moderate, blue = mild.
+- Case Count: Number of cases where this PT occurred with the drug pair  
+- Support: Frequency of occurrence in dataset  
+- Confidence: Likelihood of PT given drug pair  
+- Lift: Strength of association  
+- **Outcome-based colors (clinical severity):**  
+  🔴 Critical | 🟠 Serious | 🟡 Moderate | 🔵 Mild/Other  
 """)
