@@ -6,7 +6,7 @@ import pandas as pd
 # -----------------------------
 @st.cache_data
 def load_data():
-    df = pd.read_csv("drug_pairs_rules.csv")
+   df = pd.read_csv("ddi_pyspark_folder/drug_pairs_rules.csv")
     return df
 
 df_rules = load_data()
