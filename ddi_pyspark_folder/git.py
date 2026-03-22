@@ -2,15 +2,21 @@ import os
 import pandas as pd
 import streamlit as st
 
+# -----------------------------
+# Load data
+# -----------------------------
 @st.cache_data
 def load_data():
-    base_path = os.path.dirname(__file__)
-    file_path = os.path.join(base_path, "ddi_pyspark_folder", "drug_pairs_rules.csv")
+    file_path = os.path.join(os.path.dirname(__file__), "drug_pairs_rules.csv")
     
-    st.write("Reading from:", file_path)  # debug line
+    # Debug (optional)
+    # st.write("Reading from:", file_path)
 
     df = pd.read_csv(file_path)
     return df
+
+# ✅ IMPORTANT: call the function
+df_rules = load_data()
 
 st.title("Drug–Event Association Dashboard")
 
@@ -80,5 +86,4 @@ elif len(selected_drugs) == 1:
     st.warning("Please select one more drug to complete the pair.")
 
 else:
-    st.info("Select 2 drugs to see associated PTs.")sociated PTs.")
-
+    st.info("Select 2 drugs to see associated PTs.")
