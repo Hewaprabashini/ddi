@@ -13,7 +13,7 @@ df_rules = load_data()
 
 
 # Page Title
-st.title("Drug Safety & Interaction Explorer💊")
+st.title("Drug Safety & Interaction Explorer💊💊💊💊💊")
 
 st.write(
     "This dashboard helps you explore relationships between drug combinations and adverse reactions . "
