@@ -2,9 +2,8 @@ import os
 import pandas as pd
 import streamlit as st
 
-# -----------------------------
+
 # Load data
-# -----------------------------
 @st.cache_data
 def load_data():
     file_path = os.path.join(os.path.dirname(__file__), "result.csv")
@@ -12,19 +11,17 @@ def load_data():
 
 df_rules = load_data()
 
-# -----------------------------
+
 # Page Title
-# -----------------------------
 st.title("💊 Drug Safety & Interaction Explorer")
 
 st.write(
-    "This dashboard helps you explore relationships between drug combinations and adverse reactions (PTs). "
-    "You can search in both directions: from drugs to reactions or reactions to drugs."
+    "This dashboard helps you explore relationships between drug combinations and adverse reactions . "
+    "You can type the two type of nurological drugs that are need to explore or else you can enter the reaction(PT) to find the impacting drugs ."
 )
 
-# -----------------------------
+
 # Color function (used everywhere)
-# -----------------------------
 def get_color(outcome):
     if outcome == "Critical":
         return "#ff4d4d"   # red
@@ -36,17 +33,15 @@ def get_color(outcome):
         return "#cce5ff"   # blue
 
 
-# =============================
+
 # MODE SELECTION
-# =============================
 mode = st.radio(
     "Choose what you want to explore:",
     ["🔍 Drug Pair → Adverse Reaction", "⚠️ Adverse Reaction → Drug Pairs"]
 )
 
-# =============================
+
 # MODE 1 — Drug → PT
-# =============================
 if mode == "🔍 Drug Pair → Adverse Reaction":
 
     st.subheader("Select two drugs")
@@ -69,23 +64,18 @@ if mode == "🔍 Drug Pair → Adverse Reaction":
     ]
 
 
-# =============================
 # MODE 2 — PT → Drug
-# =============================
 else:
 
-    st.subheader("Select an adverse reaction (PT)")
+    st.subheader("Select an adverse reaction ")
 
     all_pts = sorted(df_rules["pt"].unique())
     selected_pt = st.selectbox("Choose reaction", all_pts)
 
     filtered = df_rules[df_rules["pt"] == selected_pt]
 
-
-# -----------------------------
 # Filters
-# -----------------------------
-st.subheader("Refine results (optional)")
+st.subheader("Refine results ")
 
 min_case = st.slider("Minimum number of cases", 1, 50, 1)
 min_conf = st.slider("Minimum confidence (strength)", 0.0, 1.0, 0.0, 0.05)
@@ -97,9 +87,7 @@ filtered = filtered[
     (filtered["lift"] >= min_lift)
 ]
 
-# -----------------------------
 # Display Results
-# -----------------------------
 if filtered.empty:
     st.info("No matching results found. Try adjusting filters.")
 else:
@@ -134,9 +122,7 @@ else:
             unsafe_allow_html=True
         )
 
-# -----------------------------
 # Help Section
-# -----------------------------
 st.markdown("""
 ---
 
