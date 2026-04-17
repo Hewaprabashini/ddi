@@ -12,60 +12,84 @@ def load_data():
 
 df_rules = load_data()
 
-st.title("Drug–Event Association Dashboard")
+# -----------------------------
+# Page Title
+# -----------------------------
+st.title("💊 Drug Safety & Interaction Explorer")
+
+st.write(
+    "This dashboard helps you explore relationships between drug combinations and adverse reactions (PTs). "
+    "You can search in both directions: from drugs to reactions or reactions to drugs."
+)
+
+# -----------------------------
+# Color function (used everywhere)
+# -----------------------------
+def get_color(outcome):
+    if outcome == "Critical":
+        return "#ff4d4d"   # red
+    elif outcome == "Serious":
+        return "#ff944d"   # orange
+    elif outcome == "Moderate":
+        return "#ffd966"   # yellow
+    else:
+        return "#cce5ff"   # blue
+
 
 # =============================
-# MODE SWITCH
+# MODE SELECTION
 # =============================
 mode = st.radio(
-    "Select Analysis Mode:",
-    ["Drug Pair → PTs", "PT → Drug Pairs"]
+    "Choose what you want to explore:",
+    ["🔍 Drug Pair → Adverse Reaction", "⚠️ Adverse Reaction → Drug Pairs"]
 )
 
 # =============================
-# MODE 1 — Drug Pair → PTs
+# MODE 1 — Drug → PT
 # =============================
-if mode == "Drug Pair → PTs":
+if mode == "🔍 Drug Pair → Adverse Reaction":
 
-    st.subheader("Select Drug Pair")
+    st.subheader("Select two drugs")
 
     all_drugs = sorted(set(df_rules["drug_1"]).union(set(df_rules["drug_2"])))
 
-    first_drug = st.selectbox("Pick first drug:", all_drugs)
+    drug_a = st.selectbox("Select first drug", all_drugs)
 
-    possible_seconds = sorted(
-        set(df_rules[df_rules["drug_1"] == first_drug]["drug_2"]).union(
-            set(df_rules[df_rules["drug_2"] == first_drug]["drug_1"])
+    possible_b = sorted(
+        set(df_rules[df_rules["drug_1"] == drug_a]["drug_2"]).union(
+            set(df_rules[df_rules["drug_2"] == drug_a]["drug_1"])
         )
     )
 
-    second_drug = st.selectbox("Pick second drug:", possible_seconds)
+    drug_b = st.selectbox("Select second drug", possible_b)
 
     filtered = df_rules[
-        (((df_rules["drug_1"] == first_drug) & (df_rules["drug_2"] == second_drug)) |
-         ((df_rules["drug_1"] == second_drug) & (df_rules["drug_2"] == first_drug)))
+        ((df_rules["drug_1"] == drug_a) & (df_rules["drug_2"] == drug_b)) |
+        ((df_rules["drug_1"] == drug_b) & (df_rules["drug_2"] == drug_a))
     ]
 
+
 # =============================
-# MODE 2 — PT → Drug Pairs
+# MODE 2 — PT → Drug
 # =============================
 else:
 
-    st.subheader("Select Adverse Event (PT)")
+    st.subheader("Select an adverse reaction (PT)")
 
     all_pts = sorted(df_rules["pt"].unique())
-    selected_pt = st.selectbox("Choose PT:", all_pts)
+    selected_pt = st.selectbox("Choose reaction", all_pts)
 
     filtered = df_rules[df_rules["pt"] == selected_pt]
 
-# =============================
-# COMMON FILTERS
-# =============================
-st.subheader("Filter rules")
 
-min_case = st.slider("Minimum Case Count:", 1, 50, 1)
-min_conf = st.slider("Minimum Confidence:", 0.0, 1.0, 0.0, 0.05)
-min_lift = st.slider("Minimum Lift:", 0.0, 5000.0, 0.0, 50.0)
+# -----------------------------
+# Filters
+# -----------------------------
+st.subheader("Refine results (optional)")
+
+min_case = st.slider("Minimum number of cases", 1, 50, 1)
+min_conf = st.slider("Minimum confidence (strength)", 0.0, 1.0, 0.0, 0.05)
+min_lift = st.slider("Minimum lift (importance)", 0.0, 50.0, 0.0, 0.5)
 
 filtered = filtered[
     (filtered["case_count"] >= min_case) &
@@ -73,13 +97,15 @@ filtered = filtered[
     (filtered["lift"] >= min_lift)
 ]
 
-# =============================
-# DISPLAY
-# =============================
+# -----------------------------
+# Display Results
+# -----------------------------
 if filtered.empty:
-    st.info("No results found.")
+    st.info("No matching results found. Try adjusting filters.")
 else:
-    st.subheader("Results (sorted by Lift)")
+
+    st.subheader("Results")
+
     filtered = filtered.sort_values(by="lift", ascending=False)
 
     for _, row in filtered.iterrows():
@@ -87,28 +113,43 @@ else:
         drug1 = row["drug_1"]
         drug2 = row["drug_2"]
         pt = row["pt"]
+        outcome = row["final_outcome"]
         case_count = row["case_count"]
         confidence = row["confidence"]
         lift = row["lift"]
-        outcome = row["final_outcome"]
 
-        if outcome == "Critical":
-            color = "#ff4d4d"
-        elif outcome == "Serious":
-            color = "#ff944d"
-        elif outcome == "Moderate":
-            color = "#ffd966"
-        else:
-            color = "#cce5ff"
+        color = get_color(outcome)
 
         st.markdown(
-            f"<div style='background-color:{color};padding:10px;margin:6px;border-radius:8px;'>"
-            f"<b>Drug Pair:</b> {drug1} + {drug2} | "
-            f"<b>PT:</b> {pt} | "
-            f"<b>Outcome:</b> {outcome} | "
-            f"<b>Case Count:</b> {case_count} | "
-            f"<b>Confidence:</b> {confidence:.2f} | "
-            f"<b>Lift:</b> {lift:.2f}"
-            "</div>",
+            f"""
+            <div style="background-color:{color};padding:12px;margin:8px;border-radius:10px;">
+                <b>Drug Pair:</b> {drug1} + {drug2}<br>
+                <b>Adverse Reaction (PT):</b> {pt}<br>
+                <b>Severity:</b> {outcome}<br>
+                <b>Number of Cases:</b> {case_count}<br>
+                <b>Confidence:</b> {confidence:.2f}<br>
+                <b>Lift:</b> {lift:.2f}
+            </div>
+            """,
             unsafe_allow_html=True
         )
+
+# -----------------------------
+# Help Section
+# -----------------------------
+st.markdown("""
+---
+
+### 📘 What these results mean
+
+- **Drug Pair** → two medicines used together  
+- **Adverse Reaction (PT)** → possible side effect or medical event  
+- **Number of Cases** → how often this was observed  
+- **Confidence** → how likely the reaction happens when drugs are used together  
+- **Lift** → how strongly the drugs are linked to the reaction  
+- **Severity Color**:
+  - 🔴 Critical (very serious)
+  - 🟠 Serious
+  - 🟡 Moderate
+  - 🔵 Mild / Other
+""")
